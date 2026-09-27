@@ -1,3 +1,4 @@
+import logging
 import os
 
 from fastapi import FastAPI, Request
@@ -7,6 +8,9 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from .api.v1 import router as v1_router
 from .config import settings
+
+logger = logging.getLogger("expense_tracker")
+logging.basicConfig(level=logging.INFO)
 
 app = FastAPI(title="Expense Tracker API", version="1.0.0")
 
@@ -22,7 +26,9 @@ app.add_middleware(
 
 @app.exception_handler(SQLAlchemyError)
 async def sqlalchemy_exception_handler(request: Request, exc: SQLAlchemyError) -> JSONResponse:
-    """Catch any unhandled database error and return a clean JSON 503."""
+    """Catch any unhandled database error, log it for debugging, and return a clean JSON 503."""
+    # Log the real error so Render logs show what actually went wrong.
+    logger.exception("Database error during %s %s", request.method, request.url.path)
     return JSONResponse(
         status_code=503,
         content={"detail": "Database is temporarily unavailable, please try again shortly."},
@@ -39,7 +45,6 @@ app.include_router(v1_router, prefix="/api/v1")
 
 
 # Allow running via ``python -m app.main`` for Render/Heroku-style platforms
-# that expect to bind to a $PORT. The preferred way is still ``uvicorn app.main:app``.
 if __name__ == "__main__":
     import uvicorn
 
