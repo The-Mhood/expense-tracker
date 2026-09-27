@@ -1,5 +1,6 @@
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -25,7 +26,6 @@ class ExpenseBase(BaseModel):
         """
         try:
             if isinstance(v, float):
-                # Convert via string to avoid binary float imprecision
                 return Decimal(str(v)).quantize(Decimal("0.01"))
             if isinstance(v, str | int):
                 return Decimal(v).quantize(Decimal("0.01"))
@@ -34,6 +34,32 @@ class ExpenseBase(BaseModel):
         except (InvalidOperation, ValueError, ArithmeticError):
             pass
         raise ValueError("amount must be a valid decimal number greater than 0 (e.g. 12.50)")
+
+    @field_validator("category", mode="before")
+    @classmethod
+    def coerce_category(cls, v: Any) -> Category:
+        """Normalize category input to the correct enum member.
+
+        Accepts:
+        - the canonical lowercase value ("food")
+        - the Python enum member name in any case ("FOOD", "Food")
+        - any weird casing ("Food", "TRANSPORT")
+
+        Without this, sending "FOOD" (member name) would match the enum on
+        the Python side but SQLAlchemy would serialize it as "FOOD" (the name)
+        instead of "food" (the value), causing Postgres to reject it with
+        'invalid input value for enum category_enum'.
+        """
+        if isinstance(v, Category):
+            return v
+        if isinstance(v, str):
+            lower = v.strip().lower()
+            for member in Category:
+                if lower == member.value or lower == member.name.lower():
+                    return member
+        raise ValueError(
+            f"category must be one of: {', '.join(m.value for m in Category)}"
+        )
 
 
 class ExpenseCreate(ExpenseBase):
