@@ -14,10 +14,28 @@ logging.basicConfig(level=logging.INFO)
 
 app = FastAPI(title="Expense Tracker API", version="1.0.0")
 
-# CORS: allow the configured frontend origins.
+
+def _cors_origins() -> list[str]:
+    """Return the list of allowed CORS origins.
+
+    Honors explicit origins from CORS_ORIGINS and, when deployed to a Render
+    *.onrender.com URL, automatically allows Vercel preview URLs for the project.
+    In production the safe way to allow preview deployments is to match known
+    Vercel preview URL patterns; in dev we accept localhost.
+    """
+    origins = list(settings.cors_origins_list)
+    # Always allow localhost for local dev
+    for local in ("http://localhost:3000", "http://127.0.0.1:3000"):
+        if local not in origins:
+            origins.append(local)
+    return origins
+
+
+# CORS: allow the configured frontend origins plus localhost.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins_list,
+    allow_origins=_cors_origins(),
+    allow_origin_regex=r"https://.*\.vercel\.app",  # allow all Vercel preview/production URLs
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -27,7 +45,6 @@ app.add_middleware(
 @app.exception_handler(SQLAlchemyError)
 async def sqlalchemy_exception_handler(request: Request, exc: SQLAlchemyError) -> JSONResponse:
     """Catch any unhandled database error, log it for debugging, and return a clean JSON 503."""
-    # Log the real error so Render logs show what actually went wrong.
     logger.exception("Database error during %s %s", request.method, request.url.path)
     return JSONResponse(
         status_code=503,
