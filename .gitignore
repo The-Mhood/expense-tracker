@@ -1,0 +1,45 @@
+# ========== Python / Backend ==========
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+backend/build/
+backend/dist/
+backend/*.egg-info/
+backend/.venv/
+backend/venv/
+backend/ENV/
+
+# ========== Node / Frontend ==========
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/build/
+frontend/dist/
+frontend/.vercel/
+frontend/next-env.d.ts.bak
+
+# ========== Env files (secrets) ==========
+# Example/template files are committed; real .env files are NOT.
+**/.env
+**/.env.local
+**/.env.development.local
+**/.env.production.local
+backend/.env
+frontend/.env.local
+
+# ========== IDE / OS ==========
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ========== Alembic ==========
+# Uncomment after you have real migrations committed; keep versions/ tracked
+# so Render can run migrations on deploy.
+# backend/alembic/versions/*.py
+!backend/alembic/versions/0001_create_expenses.py
